@@ -23,9 +23,8 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     char dst_addr[ETHER_ADDR_FMT_LEN];
     format_ether_addr(ethernet->ether_dhost, dst_addr);
 
-    printf("Packet #%d:\n", count);
-    printf("    Source:      %s\n", src_addr);
-    printf("    Destination: %s\n", dst_addr);
+    printf("Packet #%d:\t", count);
+    printf("%s -> %s\n", src_addr, dst_addr);
 }
 
 int main(int argc, char *argv[]) {
@@ -35,8 +34,15 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    const char *device = argv[1];
-    const char *filter = (argc > 2) ? argv[2] : "";
+    char *device = argv[1];
+    char *filter;
+    if (argc > 2) {
+        filter = argv[2];
+        printf("Starting \"%s\" capture on %s.\n", filter, device);
+    } else {
+        filter = "";
+        printf("Starting capture on %s.\n", device);
+    }
 
     // used to store an error message before a pcap_t is created
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -73,12 +79,6 @@ int main(int argc, char *argv[]) {
     if (pcap_setfilter(handle, &fp) != 0) {
         pcap_perror(handle, "pcap_setfilter");
         exit(1);
-    }
-
-    if (argc > 2) {
-        printf("Starting \"%s\" capture on %s.\n", filter, device);
-    } else {
-        printf("Starting capture on %s.\n", device);
     }
 
     if (pcap_loop(handle, -1, got_packet, NULL) != 0) {
