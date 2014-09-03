@@ -28,6 +28,9 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     eth_ntoa(ethernet->ether_dhost, ether_dst, ETHER_ADDRSTRLEN);
     printf("\tETH: %s -> %s\n", ether_src, ether_dst);
 
+    // Is this an IP packet?
+    if (ntohs(ethernet->ether_type) != ETHERTYPE_IP) return;
+
     const struct ip *ip = (struct ip*)(packet + SIZE_ETHERNET);
     size_t size_ip = ip->ip_hl * 4;
     char ip_src[INET_ADDRSTRLEN];
@@ -36,7 +39,7 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     inet_ntop(AF_INET, &(ip->ip_dst), ip_dst, INET_ADDRSTRLEN);
     printf("\tIP:  %s -> %s\n", ip_src, ip_dst);
 
-    // Only dig further if IP protocol is TCP.
+    // Is this a TCP packet?
     if (ip->ip_p != IPPROTO_TCP) return;
 
     const struct tcphdr *tcp = (struct tcphdr*)(packet + SIZE_ETHERNET + size_ip);
@@ -45,7 +48,7 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     unsigned short tcp_dst = ntohs(tcp->th_dport);
     printf("\tTCP: %d -> %d\n\n", tcp_src, tcp_dst);
 
-    // Dig a little further if we're capturing HTTP traffic.
+    // Is this an HTTP packet?
     if (tcp_src != 80 && tcp_dst != 80) return;
 
     const u_char *payload = packet + SIZE_ETHERNET + size_ip + size_tcp;
