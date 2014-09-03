@@ -3,11 +3,11 @@
 #include <pcap/pcap.h>
 #include <netinet/if_ether.h>
 
-#define ETHER_ADDR_FMT_LEN  18
-
-void format_ether_addr(const u_int8_t *adr, char *dst) {
-    sprintf(dst, "%02x:%02x:%02x:%02x:%02x:%02x",
-            adr[0], adr[1], adr[2], adr[3], adr[4], adr[5]);
+#define print_ether_addr(addr) {                 \
+    for (int i = 0; i < ETHER_ADDR_LEN; i++) {   \
+        printf("%02x", addr[i]);                 \
+        if (i < ETHER_ADDR_LEN - 1) printf(":"); \
+    }                                            \
 }
 
 void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet) {
@@ -17,14 +17,11 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     const struct ether_header *ethernet;
     ethernet = (struct ether_header*)packet;
 
-    char src_addr[ETHER_ADDR_FMT_LEN];
-    format_ether_addr(ethernet->ether_shost, src_addr);
-
-    char dst_addr[ETHER_ADDR_FMT_LEN];
-    format_ether_addr(ethernet->ether_dhost, dst_addr);
-
     printf("Packet #%d:\t", count);
-    printf("%s -> %s\n", src_addr, dst_addr);
+    print_ether_addr(ethernet->ether_shost);
+    printf(" -> ");
+    print_ether_addr(ethernet->ether_dhost);
+    printf("\n");
 }
 
 int main(int argc, char *argv[]) {
