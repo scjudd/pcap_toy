@@ -19,33 +19,40 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     static int count = 0;
     count++;
 
-    const struct ether_header *ethernet;
-    const struct ip *ip;
-    const struct tcphdr *tcp;
+    printf("Packet #%d:\n", count);
 
-    ethernet = (struct ether_header*)(packet);
+    const struct ether_header *ethernet = (struct ether_header*)(packet);
     char ether_src[ETHER_ADDRSTRLEN];
     char ether_dst[ETHER_ADDRSTRLEN];
     eth_ntoa(ethernet->ether_shost, ether_src, ETHER_ADDRSTRLEN);
     eth_ntoa(ethernet->ether_dhost, ether_dst, ETHER_ADDRSTRLEN);
+    printf("\tETH: %s -> %s\n", ether_src, ether_dst);
 
-    ip = (struct ip*)(packet + SIZE_ETHERNET);
+    const struct ip *ip = (struct ip*)(packet + SIZE_ETHERNET);
+    size_t size_ip = ip->ip_hl * 4;
     char ip_src[INET_ADDRSTRLEN];
     char ip_dst[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(ip->ip_src), ip_src, INET_ADDRSTRLEN);
     inet_ntop(AF_INET, &(ip->ip_dst), ip_dst, INET_ADDRSTRLEN);
+    printf("\tIP:  %s -> %s\n", ip_src, ip_dst);
 
-    // Only handle TCP for now.
+    // Only dig further if IP protocol is TCP.
     if (ip->ip_p != IPPROTO_TCP) return;
 
-    tcp = (struct tcphdr*)(packet + SIZE_ETHERNET + ip->ip_hl*4);
+    const struct tcphdr *tcp = (struct tcphdr*)(packet + SIZE_ETHERNET + size_ip);
+    size_t size_tcp = tcp->th_off * 4;
     unsigned short tcp_src = ntohs(tcp->th_sport);
     unsigned short tcp_dst = ntohs(tcp->th_dport);
+    printf("\tTCP: %d -> %d\n\n", tcp_src, tcp_dst);
 
-    printf("Packet #%d:\n", count);
-    printf("\tETH: %s -> %s\n", ether_src, ether_dst);
-    printf("\tIP:  %s -> %s\n", ip_src, ip_dst);
-    printf("\tTCP: %d -> %d\n", tcp_src, tcp_dst);
+    // Dig a little further if we're capturing HTTP traffic.
+    if (tcp_src != 80 && tcp_dst != 80) return;
+
+    const u_char *payload = packet + SIZE_ETHERNET + size_ip + size_tcp;
+    size_t size_payload = ntohs(ip->ip_len) - size_ip - size_tcp;
+    if (size_payload > 0) {
+        printf("%s\n", payload);
+    }
 }
 
 int main(int argc, char *argv[]) {
