@@ -2,12 +2,16 @@
 #include <stdio.h>
 #include <pcap/pcap.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <arpa/inet.h>
 
-#define print_ether_addr(addr) {                 \
-    for (int i = 0; i < ETHER_ADDR_LEN; i++) {   \
-        printf("%02x", addr[i]);                 \
-        if (i < ETHER_ADDR_LEN - 1) printf(":"); \
-    }                                            \
+#define ETHER_ADDRSTRLEN    18
+#define SIZE_ETHERNET       14
+
+void eth_ntoa(const u_char *src, char *dst, size_t size) {
+    snprintf(dst, size, "%02x:%02x:%02x:%02x:%02x:%02x",
+        src[0], src[1], src[2], src[3], src[4], src[5]);
 }
 
 void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet) {
@@ -15,19 +19,29 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     count++;
 
     const struct ether_header *ethernet;
-    ethernet = (struct ether_header*)packet;
+    const struct ip *ip;
 
-    printf("Packet #%d:\t", count);
-    print_ether_addr(ethernet->ether_shost);
-    printf(" -> ");
-    print_ether_addr(ethernet->ether_dhost);
-    printf("\n");
+    ethernet = (struct ether_header*)(packet);
+    char ether_src[ETHER_ADDRSTRLEN];
+    char ether_dst[ETHER_ADDRSTRLEN];
+    eth_ntoa(ethernet->ether_shost, ether_src, ETHER_ADDRSTRLEN);
+    eth_ntoa(ethernet->ether_dhost, ether_dst, ETHER_ADDRSTRLEN);
+
+    ip = (struct ip*)(packet + SIZE_ETHERNET);
+    char ip_src[INET_ADDRSTRLEN];
+    char ip_dst[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(ip->ip_src), ip_src, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &(ip->ip_dst), ip_dst, INET_ADDRSTRLEN);
+
+    printf("Packet #%d:\n", count);
+    printf("\tETH: %s -> %s\n", ether_src, ether_dst);
+    printf("\tIP:  %s -> %s\n", ip_src, ip_dst);
 }
 
 int main(int argc, char *argv[]) {
 
     if (argc < 2 || argc > 3) {
-        fprintf(stderr, "usage: %s <device> [filter]\n", argv[0]);
+        fprintf(stderr, "Usage: %s <device> [filter]\n", argv[0]);
         exit(1);
     }
 
