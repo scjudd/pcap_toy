@@ -80,10 +80,15 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+#ifdef __APPLE__
+    // OS X needs to have a timeout set, or packets may never get delivered.
+    // This doesn't seem to be required under Gentoo Linux, and packets get
+    // delivered much faster when this isn't set.
     if (pcap_set_timeout(handle, 1000) != 0) {
         pcap_perror(handle, "pcap_set_timeout");
         exit(1);
     }
+#endif
 
     if (pcap_activate(handle) != 0) {
         pcap_perror(handle, "pcap_activate");
