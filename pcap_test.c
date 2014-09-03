@@ -4,6 +4,7 @@
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 
 #define ETHER_ADDRSTRLEN    18
@@ -20,6 +21,7 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
 
     const struct ether_header *ethernet;
     const struct ip *ip;
+    const struct tcphdr *tcp;
 
     ethernet = (struct ether_header*)(packet);
     char ether_src[ETHER_ADDRSTRLEN];
@@ -33,9 +35,17 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     inet_ntop(AF_INET, &(ip->ip_src), ip_src, INET_ADDRSTRLEN);
     inet_ntop(AF_INET, &(ip->ip_dst), ip_dst, INET_ADDRSTRLEN);
 
+    // Only handle TCP for now.
+    if (ip->ip_p != IPPROTO_TCP) return;
+
+    tcp = (struct tcphdr*)(packet + SIZE_ETHERNET + ip->ip_hl*4);
+    unsigned short tcp_src = ntohs(tcp->th_sport);
+    unsigned short tcp_dst = ntohs(tcp->th_dport);
+
     printf("Packet #%d:\n", count);
     printf("\tETH: %s -> %s\n", ether_src, ether_dst);
     printf("\tIP:  %s -> %s\n", ip_src, ip_dst);
+    printf("\tTCP: %d -> %d\n", tcp_src, tcp_dst);
 }
 
 int main(int argc, char *argv[]) {
