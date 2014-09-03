@@ -29,7 +29,7 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     printf("\tETH: %s -> %s\n", ether_src, ether_dst);
 
     // Is this an IP packet?
-    if (ntohs(ethernet->ether_type) != ETHERTYPE_IP) return;
+    if (ntohs(ethernet->ether_type) != ETHERTYPE_IP) goto finish;
 
     const struct ip *ip = (struct ip*)(packet + SIZE_ETHERNET);
     size_t size_ip = ip->ip_hl * 4;
@@ -40,22 +40,26 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     printf("\tIP:  %s -> %s\n", ip_src, ip_dst);
 
     // Is this a TCP packet?
-    if (ip->ip_p != IPPROTO_TCP) return;
+    if (ip->ip_p != IPPROTO_TCP) goto finish;
 
     const struct tcphdr *tcp = (struct tcphdr*)(packet + SIZE_ETHERNET + size_ip);
     size_t size_tcp = tcp->th_off * 4;
     unsigned short tcp_src = ntohs(tcp->th_sport);
     unsigned short tcp_dst = ntohs(tcp->th_dport);
-    printf("\tTCP: %d -> %d\n\n", tcp_src, tcp_dst);
+    printf("\tTCP: %d -> %d\n", tcp_src, tcp_dst);
 
     // Is this an HTTP packet?
-    if (tcp_src != 80 && tcp_dst != 80) return;
+    if (tcp_src != 80 && tcp_dst != 80) goto finish;
 
     const u_char *payload = packet + SIZE_ETHERNET + size_ip + size_tcp;
     size_t size_payload = ntohs(ip->ip_len) - size_ip - size_tcp;
     if (size_payload > 0) {
-        printf("%s\n", payload);
+        printf("\n%s", payload);
     }
+
+finish:
+    printf("\n");
+    return;
 }
 
 int main(int argc, char *argv[]) {
