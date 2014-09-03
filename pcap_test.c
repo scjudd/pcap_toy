@@ -56,16 +56,15 @@ int main(int argc, char *argv[]) {
     }
 
     char *device = argv[1];
-    char *filter;
+    char *filter = (argc > 2) ? argv[2] : "";
+
     if (argc > 2) {
-        filter = argv[2];
         printf("Starting \"%s\" capture on %s.\n", filter, device);
     } else {
-        filter = "";
         printf("Starting capture on %s.\n", device);
     }
 
-    // used to store an error message before a pcap_t is created
+    // Used to store an error message before a pcap_t is created.
     char errbuf[PCAP_ERRBUF_SIZE];
 
     bpf_u_int32 ip;
