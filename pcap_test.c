@@ -10,8 +10,8 @@
 #define ETHER_ADDRSTRLEN    18
 #define SIZE_ETHERNET       14
 
-void eth_ntoa(const u_char *src, char *dst, size_t size) {
-    snprintf(dst, size, "%02x:%02x:%02x:%02x:%02x:%02x",
+void eth_ntoa(const u_char *src, char *dst) {
+    snprintf(dst, ETHER_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
         src[0], src[1], src[2], src[3], src[4], src[5]);
 }
 
@@ -24,8 +24,8 @@ void got_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *packet)
     const struct ether_header *ethernet = (struct ether_header*)(packet);
     char ether_src[ETHER_ADDRSTRLEN];
     char ether_dst[ETHER_ADDRSTRLEN];
-    eth_ntoa(ethernet->ether_shost, ether_src, ETHER_ADDRSTRLEN);
-    eth_ntoa(ethernet->ether_dhost, ether_dst, ETHER_ADDRSTRLEN);
+    eth_ntoa(ethernet->ether_shost, ether_src);
+    eth_ntoa(ethernet->ether_dhost, ether_dst);
     printf("\tETH: %s -> %s\n", ether_src, ether_dst);
 
     // Is this an IP packet?
